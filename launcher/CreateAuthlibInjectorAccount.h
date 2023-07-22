@@ -18,42 +18,30 @@
 
 #pragma once
 
-#include <QtCore/QEventLoop>
-#include <QtWidgets/QDialog>
-
 #include "minecraft/auth/MinecraftAccount.h"
-#include "tasks/Task.h"
+#include "net/NetAction.h"
 
-namespace Ui {
-class LoginDialog;
-}
-
-class LoginDialog : public QDialog {
-    Q_OBJECT
-
+typedef shared_qobject_ptr<class CreateAuthlibInjectorAccount> CreateAuthlibInjectorAccountPtr;
+class CreateAuthlibInjectorAccount : public NetAction {
    public:
-    ~LoginDialog();
-
-    static MinecraftAccountPtr newAccount(QWidget* parent, QString message);
-
-   private:
-    explicit LoginDialog(QWidget* parent = 0);
-
-    void setUserInputsEnabled(bool enable);
+    explicit CreateAuthlibInjectorAccount(QUrl url, MinecraftAccountPtr account, QString username);
+    static CreateAuthlibInjectorAccountPtr make(QUrl url, MinecraftAccountPtr account, QString username)
+    {
+        return CreateAuthlibInjectorAccountPtr(new CreateAuthlibInjectorAccount(url, account, username));
+    }
+    MinecraftAccountPtr getAccount();
 
    protected slots:
-    void accept();
+    void downloadProgress(qint64 bytesReceived, qint64 bytesTotal) override {}
+    void downloadError(QNetworkReply::NetworkError error) override;
+    void downloadFinished() override;
+    void downloadReadyRead() override {}
 
-    void onTaskFailed(const QString& reason);
-    void onTaskSucceeded();
-    void onTaskStatus(const QString& status);
-    void onTaskProgress(qint64 current, qint64 total);
-
-    void on_userTextBox_textEdited(const QString& newText);
-    void on_passTextBox_textEdited(const QString& newText);
+   public slots:
+    void executeTask() override;
 
    private:
-    Ui::LoginDialog* ui;
+    QUrl m_url;
     MinecraftAccountPtr m_account;
-    Task::Ptr m_loginTask;
+    QString m_username;
 };
